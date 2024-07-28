@@ -7,14 +7,14 @@ pub fn setup(
         mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     ) {
         commands.spawn(Camera2dBundle::default());
-        let texture = asset_server.load("player_07.png");
+        let texture = asset_server.load("player_01.png");
         let layout = TextureAtlasLayout::from_grid(UVec2::new(48, 96), 56, 19, None, None);
         let texture_atlas_layout = texture_atlas_layouts.add(layout);
         let animation_config = AnimationConfig::new(56, 56 + 5, 10);
     
         commands.spawn((
             SpriteBundle {
-                transform: Transform::from_scale(Vec3::splat(6.0))
+                transform: Transform::from_scale(Vec3::splat(2.0))
                     .with_translation(Vec3::new(-50.0, 0.0, 0.0)),
                 texture: texture.clone(),
                 ..default()
