@@ -27,8 +27,8 @@ impl AnimationConfig {
 #[derive(Component, PartialEq)]
 pub enum MovementState {
     Moving { last_direction: Option<Direction> },
-    Idle { last_direction: Direction },
-    Lifting { last_direction: Direction },
+    Idle { last_direction: Option<Direction>},
+    Lifting { last_direction: Option<Direction>},
 }
 
 #[derive(PartialEq, Copy, Clone, Component, Debug)]
@@ -60,17 +60,7 @@ impl AnimationInfo {
         }
     }
 
-    // pub fn calculate_frame_range(&self, direction: Direction) -> (usize, usize) {
     pub fn calculate_frame_range(&self) -> (usize, usize) {
-    //    let direction_index = &self.order;
-
-        // let direction_index = match direction {
-        //     Direction::Right => &self.order,
-        //     Direction::Up => 1,
-        //     Direction::Left => 2,
-        //     Direction::Down => 3,
-        // };
-
         let frames_per_direction = (self.end - self.start + 1) / 4;
         let start_frame = self.start + frames_per_direction * self.order;
         let end_frame = start_frame + frames_per_direction - 1;
@@ -96,4 +86,89 @@ impl AnimationResource {
         ]);
         AnimationResource { animations }
     }
+}
+
+
+pub fn animate_sprite(
+    time: &Res<Time>,
+    animator: &mut Animator,
+    sprite: &mut TextureAtlas,
+) {
+    // print!("current frame: {} \r", sprite.index);
+    let anim = animator.animation_bank.get(animator.current_animation.as_str())
+        .expect("Animation not found in the bank");
+
+    print!("cur anim: {} \n", animator.current_animation.as_str());
+    if animator.last_animation != animator.current_animation {
+        sprite.index = anim.start; // Start at the first frame of the animation
+        animator.timer = anim.cooldown; // Reset the timer
+    }
+    animator.timer -= time.delta().as_secs_f32();
+    if animator.timer <= 0. {
+        // Timer has elapsed, update the frame index
+        animator.timer = anim.cooldown; // Reset timer for the next frame
+        if anim.looping {
+            // Looping animation
+            sprite.index += 1;
+            if sprite.index > anim.end {
+                sprite.index = anim.start; // Loop back to the start
+            }
+        } else {
+            // Non-looping animation
+            sprite.index += 1;
+            if sprite.index > anim.end {
+                sprite.index = anim.end; // Clamp to the last frame
+            }
+        }
+    }
+    animator.last_animation = animator.current_animation.clone();
+}
+
+
+
+
+#[derive(Clone, Copy)] pub struct Animation {
+    pub cooldown: f32,
+    pub start: usize,
+    pub end: usize,
+    pub looping: bool,
+}
+
+#[derive(Clone, Component)]
+pub struct Animator {
+    pub animation_bank: HashMap<String, Animation>,
+    pub current_animation: String,
+    pub last_animation: String,
+    pub timer: f32,
+    pub cooldown: f32,
+}
+
+impl Default for Animator {
+    fn default() -> Self {
+        Animator {
+            animation_bank: create_anim_hashmap(),
+            timer: 0.,
+            cooldown: 0.1,
+            last_animation: " ".to_string(),
+            current_animation: "Idle".to_string(),
+        }
+    }
+}
+
+pub fn create_anim_hashmap() -> HashMap<String, Animation> {
+    let mut hash_map = HashMap::new();
+    hash_map.insert( "idle_r".to_string(), Animation { start: 56, end: 61, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "idle_l".to_string(), Animation { start: 68, end: 73, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "idle_u".to_string(), Animation { start: 62, end: 67, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "idle_d".to_string(), Animation { start: 74, end: 79, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "walk_r".to_string(), Animation { start: 112, end: 117, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "walk_l".to_string(), Animation { start: 124, end: 129, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "walk_u".to_string(), Animation { start: 118, end: 123, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "walk_d".to_string(), Animation { start: 130, end: 135, looping: true, cooldown: 0.1, },);
+    hash_map.insert( "lift_r".to_string(), Animation { start: 616, end: 629, looping: false, cooldown: 0.1, },);
+    hash_map.insert( "lift_u".to_string(), Animation { start: 630, end: 643, looping: false, cooldown: 0.1, },);
+    hash_map.insert( "lift_l".to_string(), Animation { start: 644, end: 657, looping: false, cooldown: 0.1, },);
+    hash_map.insert( "lift_d".to_string(), Animation { start: 658, end: 671, looping: false, cooldown: 0.1, },);
+    // Add other animations as needed
+    hash_map
 }
